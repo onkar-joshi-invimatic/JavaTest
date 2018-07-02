@@ -29,7 +29,6 @@ public class JWTFilterTest {
         tokenProvider = new TokenProvider(jHipsterProperties);
         ReflectionTestUtils.setField(tokenProvider, "secretKey", "test secret");
         ReflectionTestUtils.setField(tokenProvider, "tokenValidityInMilliseconds", 60000);
-        jwtFilter = new JWTFilter(tokenProvider);
         SecurityContextHolder.getContext().setAuthentication(null);
     }
 
