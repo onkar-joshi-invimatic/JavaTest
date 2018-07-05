@@ -19,8 +19,18 @@ public class TaskDTO implements Serializable {
     private LocalDate date;
 
     private Long priorityId;
+    
+    private String priority;
 
-    public Long getId() {
+    public String getPriority() {
+		return priority;
+	}
+
+	public void setPriority(String priority) {
+		this.priority = priority;
+	}
+
+	public Long getId() {
         return id;
     }
 

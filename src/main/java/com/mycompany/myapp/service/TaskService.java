@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -54,6 +55,8 @@ public class TaskService {
     public TaskDTO save(TaskDTO taskDTO) {
         log.debug("Request to save Task : {}", taskDTO);
         Task task = taskMapper.toEntity(taskDTO);
+        Priority priority = priorityRepository.findByName(taskDTO.getPriority());
+        task.setPriorityId(priority.getId());
         task = taskRepository.save(task);
         return taskMapper.toDto(task);
     }
@@ -66,9 +69,21 @@ public class TaskService {
     @Transactional(readOnly = true)
     public List<TaskDTO> findAll() {
         log.debug("Request to get all Tasks");
-        return taskRepository.findAll().stream()
-            .map(taskMapper::toDto)
-            .collect(Collectors.toCollection(LinkedList::new));
+        List<Task> taskList = this.taskRepository.findAll();
+        List<TaskDTO> listToSend = new ArrayList<TaskDTO>();
+        for(Task task: taskList) {
+        	TaskDTO taskDTO = new TaskDTO();
+        	taskDTO.setDate(task.getDate());
+        	taskDTO.setDescription(task.getDescription());
+        	taskDTO.setId(task.getId());
+        	
+        	Priority priority = this.priorityRepository.findOne(task.getPriorityId());
+        	taskDTO.setPriority(priority.getName());
+        	taskDTO.setPriorityId(task.getPriorityId());
+        	
+        	listToSend.add(taskDTO);
+        }
+        return listToSend;
     }
 
     /**
