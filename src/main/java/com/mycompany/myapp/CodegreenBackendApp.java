@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.actuate.autoconfigure.*;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.liquibase.LiquibaseProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
@@ -26,6 +27,7 @@ import java.util.Collection;
 @EnableAutoConfiguration(exclude = {MetricFilterAutoConfiguration.class, MetricRepositoryAutoConfiguration.class})
 @EnableConfigurationProperties({LiquibaseProperties.class, ApplicationProperties.class})
 @EnableDiscoveryClient
+// @SpringBootApplication
 public class CodegreenBackendApp {
 
     private static final Logger log = LoggerFactory.getLogger(CodegreenBackendApp.class);

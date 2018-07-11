@@ -58,7 +58,9 @@ public class TaskService {
         Priority priority = priorityRepository.findByName(taskDTO.getPriority());
         task.setPriorityId(priority.getId());
         task = taskRepository.save(task);
-        return taskMapper.toDto(task);
+        TaskDTO taskDTOToReturn = taskMapper.toDto(task);
+        taskDTOToReturn.setPriority(priority.getName());
+        return taskDTOToReturn;
     }
 
     /**

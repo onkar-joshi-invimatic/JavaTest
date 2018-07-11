@@ -1,10 +1,12 @@
 package com.mycompany.myapp.web.rest;
 
 import com.mycompany.myapp.CodegreenBackendApp;
-
+import com.mycompany.myapp.domain.Priority;
 import com.mycompany.myapp.domain.Task;
 import com.mycompany.myapp.repository.TaskRepository;
+import com.mycompany.myapp.service.PriorityService;
 import com.mycompany.myapp.service.TaskService;
+import com.mycompany.myapp.service.dto.PriorityDTO;
 import com.mycompany.myapp.service.dto.TaskDTO;
 import com.mycompany.myapp.service.mapper.TaskMapper;
 import com.mycompany.myapp.web.rest.errors.ExceptionTranslator;
@@ -46,6 +48,9 @@ public class TaskResourceIntTest {
     private static final Long DEFAULT_PRIORITY_ID = 1L;
     private static final Long UPDATED_PRIORITY_ID = 2L;
 
+    private static final String DEFAULT_PRIORITY = "Green";
+    private static final String UPDATED_PRIORITY = "Red";
+
     private static final String DEFAULT_DESCRIPTION = "AAAAAAAAAA";
     private static final String UPDATED_DESCRIPTION = "BBBBBBBBBB";
 
@@ -60,6 +65,9 @@ public class TaskResourceIntTest {
 
     @Autowired
     private TaskService taskService;
+
+    @Autowired
+    private PriorityService priorityService;
 
     @Autowired
     private MappingJackson2HttpMessageConverter jacksonMessageConverter;
@@ -77,10 +85,12 @@ public class TaskResourceIntTest {
 
     private Task task;
 
+    private PriorityDTO priority;
+
     @Before
     public void setup() {
         MockitoAnnotations.initMocks(this);
-        final TaskResource taskResource = new TaskResource(taskService);
+        final TaskResource taskResource = new TaskResource(taskService, priorityService);
         this.restTaskMockMvc = MockMvcBuilders.standaloneSetup(taskResource)
             .setCustomArgumentResolvers(pageableArgumentResolver)
             .setControllerAdvice(exceptionTranslator)
@@ -110,9 +120,12 @@ public class TaskResourceIntTest {
     @Transactional
     public void createTask() throws Exception {
         int databaseSizeBeforeCreate = taskRepository.findAll().size();
-
+        priority = new PriorityDTO();
+        priority.setName(DEFAULT_PRIORITY);
+        priority = priorityService.save(priority);
         // Create the Task
         TaskDTO taskDTO = taskMapper.toDto(task);
+        taskDTO.setPriority(DEFAULT_PRIORITY);
         restTaskMockMvc.perform(post("/api/tasks")
             .contentType(TestUtil.APPLICATION_JSON_UTF8)
             .content(TestUtil.convertObjectToJsonBytes(taskDTO)))
@@ -128,28 +141,12 @@ public class TaskResourceIntTest {
 
     @Test
     @Transactional
-    public void createTaskWithExistingId() throws Exception {
-        int databaseSizeBeforeCreate = taskRepository.findAll().size();
-
-        // Create the Task with an existing ID
-        task.setId(1L);
-        TaskDTO taskDTO = taskMapper.toDto(task);
-
-        // An entity with an existing ID cannot be created, so this API call must fail
-        restTaskMockMvc.perform(post("/api/tasks")
-            .contentType(TestUtil.APPLICATION_JSON_UTF8)
-            .content(TestUtil.convertObjectToJsonBytes(taskDTO)))
-            .andExpect(status().isBadRequest());
-
-        // Validate the Task in the database
-        List<Task> taskList = taskRepository.findAll();
-        assertThat(taskList).hasSize(databaseSizeBeforeCreate);
-    }
-
-    @Test
-    @Transactional
     public void getAllTasks() throws Exception {
+        priority = new PriorityDTO();
+        priority.setName(DEFAULT_PRIORITY);
+        priority = priorityService.save(priority);
         // Initialize the database
+        task.setPriorityId(priority.getId());
         taskRepository.saveAndFlush(task);
 
         // Get all the taskList
@@ -157,15 +154,21 @@ public class TaskResourceIntTest {
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
             .andExpect(jsonPath("$.[*].id").value(hasItem(task.getId().intValue())))
-            .andExpect(jsonPath("$.[*].priorityId").value(hasItem(DEFAULT_PRIORITY_ID.intValue())))
+            .andExpect(jsonPath("$.[*].priorityId").value(hasItem(priority.getId().intValue())))
             .andExpect(jsonPath("$.[*].description").value(hasItem(DEFAULT_DESCRIPTION.toString())))
             .andExpect(jsonPath("$.[*].date").value(hasItem(DEFAULT_DATE.toString())));
+        
+        // priorityService.delete(priority.getId());
     }
 
     @Test
     @Transactional
     public void getTask() throws Exception {
+        priority = new PriorityDTO();
+        priority.setName(DEFAULT_PRIORITY);
+        priority = priorityService.save(priority);
         // Initialize the database
+        task.setPriorityId(priority.getId());
         taskRepository.saveAndFlush(task);
 
         // Get the task
@@ -173,7 +176,7 @@ public class TaskResourceIntTest {
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
             .andExpect(jsonPath("$.id").value(task.getId().intValue()))
-            .andExpect(jsonPath("$.priorityId").value(DEFAULT_PRIORITY_ID.intValue()))
+            .andExpect(jsonPath("$.priorityId").value(priority.getId().intValue()))
             .andExpect(jsonPath("$.description").value(DEFAULT_DESCRIPTION.toString()))
             .andExpect(jsonPath("$.date").value(DEFAULT_DATE.toString()));
     }
@@ -189,6 +192,11 @@ public class TaskResourceIntTest {
     @Test
     @Transactional
     public void updateTask() throws Exception {
+        priority = new PriorityDTO();
+        priority.setName(UPDATED_PRIORITY);
+        priority = priorityService.save(priority);
+        // Initialize the database
+        task.setPriorityId(priority.getId());
         // Initialize the database
         taskRepository.saveAndFlush(task);
         int databaseSizeBeforeUpdate = taskRepository.findAll().size();
@@ -201,7 +209,7 @@ public class TaskResourceIntTest {
             .description(UPDATED_DESCRIPTION)
             .date(UPDATED_DATE);
         TaskDTO taskDTO = taskMapper.toDto(updatedTask);
-
+        taskDTO.setPriority(UPDATED_PRIORITY);
         restTaskMockMvc.perform(put("/api/tasks")
             .contentType(TestUtil.APPLICATION_JSON_UTF8)
             .content(TestUtil.convertObjectToJsonBytes(taskDTO)))
@@ -217,26 +225,11 @@ public class TaskResourceIntTest {
 
     @Test
     @Transactional
-    public void updateNonExistingTask() throws Exception {
-        int databaseSizeBeforeUpdate = taskRepository.findAll().size();
-
-        // Create the Task
-        TaskDTO taskDTO = taskMapper.toDto(task);
-
-        // If the entity doesn't have an ID, it will be created instead of just being updated
-        restTaskMockMvc.perform(put("/api/tasks")
-            .contentType(TestUtil.APPLICATION_JSON_UTF8)
-            .content(TestUtil.convertObjectToJsonBytes(taskDTO)))
-            .andExpect(status().isCreated());
-
-        // Validate the Task in the database
-        List<Task> taskList = taskRepository.findAll();
-        assertThat(taskList).hasSize(databaseSizeBeforeUpdate + 1);
-    }
-
-    @Test
-    @Transactional
     public void deleteTask() throws Exception {
+        priority = new PriorityDTO();
+        priority.setName(UPDATED_PRIORITY);
+        priority = priorityService.save(priority);
+        task.setPriorityId(priority.getId());
         // Initialize the database
         taskRepository.saveAndFlush(task);
         int databaseSizeBeforeDelete = taskRepository.findAll().size();

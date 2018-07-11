@@ -26,7 +26,7 @@ public class Task implements Serializable {
     @Column(name = "description")
     private String description;
 
-    @Column(name = "date")
+    @Column(name = "date", columnDefinition = "DATE")
     private LocalDate date;
 
     // jhipster-needle-entity-add-field - JHipster will add fields here, do not remove

@@ -1,6 +1,7 @@
 package com.mycompany.myapp.web.rest;
 
 import com.codahale.metrics.annotation.Timed;
+import com.mycompany.myapp.service.PriorityService;
 import com.mycompany.myapp.service.TaskService;
 import com.mycompany.myapp.web.rest.errors.BadRequestAlertException;
 import com.mycompany.myapp.web.rest.util.HeaderUtil;
@@ -30,8 +31,11 @@ public class TaskResource {
 
     private final TaskService taskService;
 
-    public TaskResource(TaskService taskService) {
+    private final PriorityService priorityService;
+
+    public TaskResource(TaskService taskService, PriorityService priorityService) {
         this.taskService = taskService;
+        this.priorityService = priorityService;
     }
 
     /**
